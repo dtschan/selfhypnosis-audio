@@ -18,17 +18,12 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            archive: tar.gz
           - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            archive: tar.gz
-            cross: true
+            os: ubuntu-24.04-arm
           - target: aarch64-apple-darwin
             os: macos-latest
-            archive: tar.gz
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            archive: zip
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -42,13 +37,9 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
-      - name: Install cross
-        if: matrix.cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
-
       - name: Install dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config binutils-multiarch
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config
 
       - name: Install dependencies (macOS)
         if: startsWith(matrix.os, 'macos')
@@ -72,34 +63,26 @@ jobs:
 
       - name: Build release binary
         shell: bash
-        run: |
-          if [ "${{ matrix.cross }}" = "true" ]; then
-            cross build --release --locked --target ${{ matrix.target }}
-          else
-            cargo build --release --locked --target ${{ matrix.target }}
-          fi
+        run: cargo build --release --locked --target ${{ matrix.target }}
 
       - name: Strip binary (Unix)
-        if: matrix.archive == 'tar.gz'
+        if: runner.os != 'Windows'
         run: strip target/${{ matrix.target }}/release/selfhypnosis-audio
 
-      - name: Package binary
+      - name: Stage binary
         shell: bash
         run: |
           mkdir -p dist
-          if [ "${{ matrix.archive }}" = "tar.gz" ]; then
-            cp target/${{ matrix.target }}/release/selfhypnosis-audio "dist/selfhypnosis-audio-${{ matrix.target }}"
-            tar czf "dist/selfhypnosis-audio-${{ matrix.target }}.tar.gz" -C dist "selfhypnosis-audio-${{ matrix.target }}"
-          else
+          if [ "${{ runner.os }}" = "Windows" ]; then
             cp target/${{ matrix.target }}/release/selfhypnosis-audio.exe "dist/selfhypnosis-audio-${{ matrix.target }}.exe"
-            cd dist && zip "../selfhypnosis-audio-${{ matrix.target }}.zip" "selfhypnosis-audio-${{ matrix.target }}.exe"
-            mv "../selfhypnosis-audio-${{ matrix.target }}.zip" .
+          else
+            cp target/${{ matrix.target }}/release/selfhypnosis-audio "dist/selfhypnosis-audio-${{ matrix.target }}"
           fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: selfhypnosis-audio-${{ matrix.target }}
-          path: dist/selfhypnosis-audio-${{ matrix.target }}.*
+          path: dist/*
           if-no-files-found: error
 
   release:
