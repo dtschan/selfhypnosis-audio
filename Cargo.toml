@@ -1,0 +1,31 @@
+[package]
+name = "selfhypnosis-audio"
+version = "0.1.0"
+edition = "2024"
+publish = ["menhera-cooldown"]
+
+[dependencies]
+bytemuck = { version = "1.25.2", registry = "menhera-cooldown" }
+candle-core = { version = "0.9", registry = "menhera-cooldown" }
+color-eyre = { version = "0.6.5", registry = "menhera-cooldown" }
+ebur128-stream = { version = "0.2.0", registry = "menhera-cooldown", features = ["normalize"] }
+fastrand = { version = "2.5.0", registry = "menhera-cooldown" }
+flac-codec = { version = "1.3.3", registry = "menhera-cooldown" }
+glob = { version = "0.3.4", registry = "menhera-cooldown" }
+hex = { version = "0.4.3", registry = "menhera-cooldown" }
+hf-hub = { version = "0.4", registry = "menhera-cooldown" }
+qwen_tts = { version = "0.1.1", registry = "menhera-cooldown", features = ["audio-loading"] }
+rubato = { version = "5.0.1", registry = "menhera-cooldown" }
+serde = { version = "1.0.229", registry = "menhera-cooldown" }
+serde_derive = { version = "1.0.229", registry = "menhera-cooldown" }
+serde_yaml_ng = { version = "0.10.0", registry = "menhera-cooldown" }
+sha2 = { version = "0.11.0", registry = "menhera-cooldown" }
+signalsmith-stretch = { version = "0.1.3", registry = "menhera-cooldown" }
+tracing = { version = "0.1.44", registry = "menhera-cooldown" }
+tracing-error = { version = "0.2.1", registry = "menhera-cooldown" }
+tracing-subscriber = { version = "0.3.23", registry = "menhera-cooldown", features = ["env-filter"] }
+
+# Workaround for esaxx-rs 0.1.10 forcing /MT on Windows, which conflicts with
+# other C/C++ dependencies built with /MD. Remove once Narsil/esaxx-rs#19 lands.
+[patch.menhera-cooldown]
+esaxx-rs = { git = "https://github.com/ocentra/esaxx-rs.git", rev = "4f4fd5acd624e43c770a0d198fcaa9d97bfd7f0b" }

@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_REGISTRIES_MENHERA_COOLDOWN_INDEX: sparse+https://index.crates.menhera.org/10d/
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+            cross: true
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Install dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config binutils-multiarch
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: brew install openssl@3 pkg-config
+
+      - name: Set OpenSSL environment (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=$(brew --prefix openssl@3)/lib/pkgconfig" >> "$GITHUB_ENV"
+
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install openssl
+
+      - name: Set OpenSSL environment (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=C:\Program Files\OpenSSL-Win64\lib\pkgconfig" >> "$GITHUB_ENV"
+
+      - name: Build release binary
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --locked --target ${{ matrix.target }}
+          else
+            cargo build --release --locked --target ${{ matrix.target }}
+          fi
+
+      - name: Strip binary (Unix)
+        if: matrix.archive == 'tar.gz'
+        run: strip target/${{ matrix.target }}/release/selfhypnosis-audio
+
+      - name: Package binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.archive }}" = "tar.gz" ]; then
+            cp target/${{ matrix.target }}/release/selfhypnosis-audio "dist/selfhypnosis-audio-${{ matrix.target }}"
+            tar czf "dist/selfhypnosis-audio-${{ matrix.target }}.tar.gz" -C dist "selfhypnosis-audio-${{ matrix.target }}"
+          else
+            cp target/${{ matrix.target }}/release/selfhypnosis-audio.exe "dist/selfhypnosis-audio-${{ matrix.target }}.exe"
+            cd dist && zip "../selfhypnosis-audio-${{ matrix.target }}.zip" "selfhypnosis-audio-${{ matrix.target }}.exe"
+            mv "../selfhypnosis-audio-${{ matrix.target }}.zip" .
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: selfhypnosis-audio-${{ matrix.target }}
+          path: dist/selfhypnosis-audio-${{ matrix.target }}.*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: selfhypnosis-audio-*
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p upload
+          find dist -type f -name "selfhypnosis-audio-*" -exec cp {} upload/ \;
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: upload/*
+          generate_release_notes: true
