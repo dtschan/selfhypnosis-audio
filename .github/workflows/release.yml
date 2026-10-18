@@ -69,20 +69,19 @@ jobs:
         if: runner.os != 'Windows'
         run: strip target/${{ matrix.target }}/release/selfhypnosis-audio
 
-      - name: Stage binary
-        shell: bash
-        run: |
-          mkdir -p dist
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            cp target/${{ matrix.target }}/release/selfhypnosis-audio.exe "dist/selfhypnosis-audio-${{ matrix.target }}.exe"
-          else
-            cp target/${{ matrix.target }}/release/selfhypnosis-audio "dist/selfhypnosis-audio-${{ matrix.target }}"
-          fi
+      - name: Package binary (Unix)
+        if: runner.os != 'Windows'
+        run: tar czf "selfhypnosis-audio-${{ matrix.target }}.tar.gz" -C target/${{ matrix.target }}/release selfhypnosis-audio
+
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "target/${{ matrix.target }}/release/selfhypnosis-audio.exe" -DestinationPath "selfhypnosis-audio-${{ matrix.target }}.zip"
 
       - uses: actions/upload-artifact@v4
         with:
           name: selfhypnosis-audio-${{ matrix.target }}
-          path: dist/*
+          path: selfhypnosis-audio-${{ matrix.target }}.*
           if-no-files-found: error
 
   release:
