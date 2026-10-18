@@ -235,7 +235,12 @@ fn main() -> Result<(), Report> {
 
     color_eyre::install()?;
 
-    let manuscript_file = env::args().nth(1).unwrap_or(String::from("manuscript.yaml"));
+    let arg = env::args().nth(1);
+    if arg.as_deref() == Some("--version") || arg.as_deref() == Some("-V") {
+        println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
+        return Ok(());
+    }
+    let manuscript_file = arg.unwrap_or(String::from("manuscript.yaml"));
     let manuscript: Manuscript = serde_yaml_ng::from_reader(File::open(&manuscript_file)?)?;
     println!("Rendering manuscript {}", manuscript.title);
 

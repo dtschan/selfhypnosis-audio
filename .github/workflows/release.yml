@@ -69,6 +69,14 @@ jobs:
         if: runner.os != 'Windows'
         run: strip target/${{ matrix.target }}/release/selfhypnosis-audio
 
+      - name: Smoke test (Unix)
+        if: runner.os != 'Windows'
+        run: target/${{ matrix.target }}/release/selfhypnosis-audio --version
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: target/${{ matrix.target }}/release/selfhypnosis-audio.exe --version
+
       - name: Package binary (Unix)
         if: runner.os != 'Windows'
         run: tar czf "selfhypnosis-audio-${{ matrix.target }}.tar.gz" -C target/${{ matrix.target }}/release selfhypnosis-audio
