@@ -1,2 +1,5 @@
 [registries.menhera-cooldown]
 index = "sparse+https://index.crates.menhera.org/10d/"
+
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

@@ -25,7 +25,3 @@ tracing = { version = "0.1.44", registry = "menhera-cooldown" }
 tracing-error = { version = "0.2.1", registry = "menhera-cooldown" }
 tracing-subscriber = { version = "0.3.23", registry = "menhera-cooldown", features = ["env-filter"] }
 
-# Workaround for esaxx-rs 0.1.10 forcing /MT on Windows, which conflicts with
-# other C/C++ dependencies built with /MD. Remove once Narsil/esaxx-rs#19 lands.
-[patch.menhera-cooldown]
-esaxx-rs = { git = "https://github.com/ocentra/esaxx-rs.git", rev = "4f4fd5acd624e43c770a0d198fcaa9d97bfd7f0b" }
